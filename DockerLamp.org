@@ -1,0 +1,128 @@
+#+title: Making and using  simple LAMP docker container.
+
+* Why?
+
+Most of the tutorials and packages like laradock are not so straight
+forward or are bloated. I Just want a simple docker container for my
+LAMP project. 
+
+* Installing Docker
+First you will need to install ~docker~ and ~docker-compose~. On
+Debian based Linux (Ubuntu) you can do this with an ~apt-get~. For
+other OSes check the docker website.
+
+#+BEGIN_SRC bash :dir /sudo::
+sudo apt-get install docker docker-compose
+#+END_SRC
+
+
+* Docker Compose
+  :PROPERTIES:
+  :header-args:yaml: +n :tangle docker-compose.yaml
+  :END:
+
+Creating a ~docker-compose.yml~ file will let us specify all of the
+containers that we will need for our app and allow us to share the
+specs for building it.
+
+#+BEGIN_SRC yaml
+version: '2'
+
+#+END_SRC
+
+That just tells us what version of the docker-compose file we are
+using, check what version your docker-compose can use. 
+
+Now to start defining some services
+#+BEGIN_SRC yaml +n
+services: 
+#+END_SRC
+
+
+** The Lamp PHP
+
+We want to get a simple Apache server with ~modphp~.
+
+We are going to call this service ~app~ but you can replace that with
+a more descriptive name for your project.
+
+#+BEGIN_SRC yaml +n
+  # The Application
+  app:
+    build:
+      context: ./
+      dockerfile: docker/app.dockerfile
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+    ports:
+      - ${DOCKER_HOST_HTTP_PORT}:80
+    environment:
+      - "DB_PORT=3306"
+      - "DB_HOST=database"
+#+END_SRC
+
+Above we specified some details on how to build and run our app
+
+- ~dockefile:~ Tells us what docker file to run when we build the app.
+- ~volumes:~ Tells us what host volumes to map in the container when
+  we run.
+- ~ports:~ lets us expose a port on the container to
+  ~localhost~. ~DOCKER_HOST_HTTP_PORT~ will be replaced by the
+  environment variable with the same name. This lets us avoid a port
+  conflict if you have a local web-server running already on
+  port 80. So you can use something like port 8000 and access your
+  container at http://localhost:8000 and that will got to port 80 on
+  the container.
+- ~environment:~ sets up some environment variables in the
+
+
+
+*** Docker file
+Above we specified a docker file to use to create our application. 
+
+#+BEGIN_SRC dockerfile  :tangle docker/app.dockerfile
+FROM php:7.2-apache
+#+END_SRC
+
+That will tell docker to build our image using the official PHP image
+for 7.2 Apache.
+
+Now we can try to run our server with 
+ #+BEGIN_SRC bash
+export DOCKER_HOST_HTTP_PORT=8000
+docker-compose up -d
+ #+END_SRC
+
+ #+RESULTS:
+
+~-d~ tells us to run as a *daemon*, if you run without you will see
+the log output. 
+
+If everything worked there should now be a php server running on
+http://localhost:8000 
+
+First lets make a test php file in ~html/index.php~
+
+#+BEGIN_SRC php -n :tangle html/index.php 
+<?php
+echo "hello world";
+#+END_SRC
+
+#+BEGIN_SRC bash :exports both :name apachetest1 
+curl -v http://localhost:8000
+#+END_SRC
+
+#+RESULTS:
+: hello world
+
+** TODO Install PHP Plugins 
+
+** TODO Install composer
+
+** TODO Mysql Server
+
+
+# Local Variables:
+# org-src-preserve-indentation: t
+# End:
